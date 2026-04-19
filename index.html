@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<title>Kalkulator Twierdzy</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
+
+body {
+    margin: 0;
+    font-family: 'Cinzel', serif;
+    background: linear-gradient(180deg, #0b0d12, #14121a);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    color: #f5e6b1;
+}
+
+.card {
+    width: 92%;
+    max-width: 420px;
+    padding: 25px;
+    border-radius: 18px;
+    background: linear-gradient(145deg, #1a1a1a, #0f0f0f);
+    border: 2px solid #c9a227;
+    box-shadow: 0 0 25px rgba(201,162,39,0.25);
+}
+
+h1 {
+    text-align: center;
+    font-size: 22px;
+    color: #ffd36b;
+}
+
+label {
+    margin-top: 12px;
+    display: block;
+    font-size: 13px;
+}
+
+select {
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    background: linear-gradient(145deg, #ffd86b, #c9a227);
+    color: #000;
+    font-weight: bold;
+}
+
+button {
+    margin-top: 20px;
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    border: 2px solid #c9a227;
+    background: linear-gradient(90deg, #b8860b, #ffd700, #b8860b);
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.sectionTitle {
+    margin-top: 18px;
+    text-align: center;
+    font-size: 16px;
+    color: #ffd36b;
+    display: none;
+}
+
+.result, .cost {
+    display: none;
+}
+
+.result {
+    text-align: center;
+    font-size: 18px;
+    color: #7CFF6B;
+}
+
+.cost {
+    margin-top: 8px;
+    text-align: center;
+    font-size: 16px;
+}
+
+.cost img {
+    width: 28px;
+    vertical-align: middle;
+    margin-right: 6px;
+    image-rendering: crisp-edges;
+}
+
+/* 🔥 ZNAK WODNY */
+.watermark {
+    position: fixed;
+    bottom: 10px;
+    right: 15px;
+    font-size: 12px;
+    color: rgba(255, 211, 107, 0.4);
+    pointer-events: none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+    <h1>⚔️ Twierdza Kalkulator</h1>
+
+    <label>Poziom twierdzy</label>
+    <select id="level"></select>
+
+    <label>Poziom kwater</label>
+    <select id="fortress"></select>
+
+    <button onclick="calculate()">Oblicz</button>
+
+    <div class="sectionTitle" id="timeTitle">⏱️ Czas budowy</div>
+    <div class="result" id="timeResult"></div>
+
+    <div class="sectionTitle" id="costTitle">💰 Koszt budowy</div>
+    <div class="cost" id="costResult"></div>
+</div>
+
+<!-- 🔥 ZNAK WODNY -->
+<div class="watermark">By Wedeleczek</div>
+
+<!-- 🔊 DŹWIĘK -->
+<audio id="buildSound" src="build.mp3"></audio>
+
+<script>
+
+// 🔊 ODTWARZANIE DŹWIĘKU
+function playBuildSound() {
+    const sound = document.getElementById("buildSound");
+    sound.currentTime = 0;
+    sound.play();
+}
+
+// DROPDOWNY
+const levelSelect = document.getElementById("level");
+const fortressSelect = document.getElementById("fortress");
+
+for (let i = 1; i <= 100; i++) {
+    let opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = "⚔️ Poziom " + i;
+    levelSelect.appendChild(opt);
+}
+
+for (let i = 0; i <= 15; i++) {
+    let opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = "🏰 Poziom " + i;
+    fortressSelect.appendChild(opt);
+}
+
+// CZASY
+const baseTimes = {
+    1:"15M",2:"31M 35S",3:"1H 6M",4:"2H 20M",5:"5H",
+    6:"8H",7:"11H 25M",8:"18H 27M",9:"1D 16H",
+    10:"3D 15H 16M",11:"7D 22H 46M",12:"13D 8H",
+    13:"20D",14:"25D 15H 33M",15:"33D 8H"
+};
+
+// KOSZTY
+const costs = {
+1:{g:10,d:0,k:0},
+2:{g:20,d:150,k:50},
+3:{g:30,d:440,k:140},
+4:{g:40,d:1100,k:333},
+5:{g:50,d:2500,k:800},
+6:{g:60,d:6000,k:2000},
+7:{g:70,d:13417,k:4433},
+8:{g:80,d:27200,k:9280},
+9:{g:90,d:57375,k:19125},
+10:{g:100,d:154000,k:50000},
+11:{g:110,d:379500,k:122100},
+12:{g:120,d:830400,k:273600},
+13:{g:130,d:1872000,k:619200},
+14:{g:140,d:3744000,k:1248000},
+15:{g:150,d:7200000,k:2340000}
+};
+
+function parseTime(str){
+let d=0,h=0,m=0,s=0;
+let dd=str.match(/(\d+)D/);
+let hh=str.match(/(\d+)H/);
+let mm=str.match(/(\d+)M/);
+let ss=str.match(/(\d+)S/);
+if(dd)d=+dd[1];
+if(hh)h=+hh[1];
+if(mm)m=+mm[1];
+if(ss)s=+ss[1];
+return d*86400+h*3600+m*60+s;
+}
+
+function getBase(level){
+return parseTime(baseTimes[level]||"60D");
+}
+
+function calculate(){
+
+playBuildSound();
+
+document.getElementById("timeTitle").style.display = "block";
+document.getElementById("costTitle").style.display = "block";
+document.getElementById("timeResult").style.display = "block";
+document.getElementById("costResult").style.display = "block";
+
+const level=+levelSelect.value;
+const fortress=+fortressSelect.value;
+
+const base=getBase(level);
+const bonus=Math.min(fortress*0.05,0.75);
+const result=Math.floor(base*(1-bonus));
+
+const d=Math.floor(result/86400);
+const h=Math.floor((result%86400)/3600);
+const m=Math.floor((result%3600)/60);
+const s=result%60;
+
+document.getElementById("timeResult").innerHTML=
+`${d}d ${h}h ${m}m ${s}s`;
+
+const cost=costs[level]||costs[15];
+
+document.getElementById("costResult").innerHTML=
+`
+<img src="gold.png"> ${cost.g.toLocaleString()} 
+<br>
+<img src="drewno.png"> ${cost.d.toLocaleString()} 
+<br>
+<img src="kamien.png"> ${cost.k.toLocaleString()}
+`;
+}
+</script>
+
+</body>
+</html>
